@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Studies in speech perception and cognition</title>
+	
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>	
+	    
+	<script src="jspsych-6.1.0/jspsych.js"></script>	
+	<script src="jspsych-6.1.0/plugins/jspsych-audio-keyboard-response.js"></script>
+	<script src="jspsych-6.1.0/plugins/jspsych-audio-slider-response.js"></script>
+	<script src="jspsych-6.1.0/plugins/jspsych-audio-button-response.js"></script>
+    <script src="jspsych-6.1.0/plugins/jspsych-html-keyboard-response.js"></script>
+    <script src="jspsych-6.1.0/plugins/jspsych-html-button-response.js"></script>
+	<script src="jspsych-6.1.0/plugins/jspsych-image-keyboard-response.js"></script>
+    <script src="jspsych-6.1.0/plugins/jspsych-image-button-response.js"></script>
+	<script src="jspsych-6.1.0/plugins/jspsych-survey-multi-choice.js"></script>
+	<script src="jspsych-6.1.0/plugins/jspsych-survey-likert.js"></script>
+    <script src="jspsych-6.1.0/plugins/jspsych-fullscreen.js"></script>
+	<script src="jspsych-6.1.0/plugins/jspsych-external-html.js"></script>
+	<script src="jspsych-6.1.0/plugins/jspsych-call-function.js"></script>
+	<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+	
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9/hmac-sha256.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9/enc-base64.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/forge/0.8.2/forge.all.min.js"></script>
+    
+    <link href="jspsych-6.1.0/css/jspsych.css" rel="stylesheet" type="text/css"></link>
+
+    <!-- Load this for Pavlovia -->
+	<script type="text/javascript" src="lib/jspsych-pavlovia-3.2.5.js"></script>
+	<!-- I do not have this file ^. Maybe it's on the Gitlab account?-->
+
+	<!-- own study scripts -->
+	<script src="js/jspsych-survey-text.js"></script> <!-- avoids input history -->
+	
+	<script src="js/csv2json.js"></script>
+	<script src="js/linNum.js"></script>
+	<script src="js/linNumJitter.js"></script>
+	<script src="js/shuffle_array.js"></script>
+	
+	<script src="js/Q_audiosetup.js"></script>
+	<script src="js/Q_demographics.js"></script>
+	<script src="js/Q_health.js"></script>
+	<script src="js/Q_music.js"></script>
+	<script src="js/Q_ssq.js"></script>
+
+	<script src="js/PROC_digit_triple_noise.js"></script>
+	<script src="js/PROC_volume_adjustment.js"></script>
+	<script src="js/PROC_headphone_check.js"></script>
+	<script src="js/PROC_perclearn.js"></script>
+	<script src="js/PROC_perclearn_train.js"></script>
+	<script src="js/PROC_auditory_digit_span.js"></script>
+<style>
+
+.jspsych-btn {
+	background-color: #DCDCDC; 
+	border: 2px solid black;
+	color: black;
+	padding: 5px 10px;
+	text-align: center;
+	text-decoration: none;
+	display: inline-block;
+	font-size: 16px;
+	cursor: pointer;
+}
+	
+.jspsych-btn:hover,
+.jspsych-btn:focus {
+	background-color: #505050; 
+	color: white;	
+	border: 2px solid black;
+}
+	
+.counter {
+	position:absolute;
+	left: 47%;
+	top: 35%;
+	text-align: center;
+}
+
+</style>
+</head>
+
+<body>
+<script>
+// ---------------------------------------------------------------------------------------------------------
+// IMPORTANT:
+// Several *.js scripts are loaded above (in addition to the jsPysch plugins). These are modules for
+// different parts of the experiment. The order in which they are load may matter, because some variables
+// loaded in a js-script may be called in another one.
+// ---------------------------------------------------------------------------------------------------------
+
+
+/*********************/
+/** DEFINE TIMELINE **/
+/*********************/
+var timeline = []; //specify the jsPsych timeline to which all trials/blocks are pushed
+
+
+/***********************/
+/** PAVLOVIA COMMANDS **/
+/***********************/
+var pavlovia_init = {
+	type: "pavlovia",
+	command: "init"
+};
+
+var pavlovia_finish = {
+	type: "pavlovia",
+	command: "finish"
+};
+
+
+/*************/
+/** CONSENT **/
+/*************/
+//function to make sure consent box is clicked before proceeding
+var check_consent = function(elem) {
+	if ($('#consent_checkbox').is(':checked')) {
+		return true;
+	}
+	else {
+		alert("If you wish to participate, you must check the box next to the statement 'I agree to take part in this study.'");
+		return false;
+	}
+	return false;
+};
+
+//CONSENT TRIAL
+var consent_trial = {
+	type:"external-html",
+	url: "consent/consent_check.html", 
+	cont_btn: "start",
+	check_fn: check_consent
+};
+
+
+
+/********************/
+/** PARTICIPANT ID **/
+/********************/
+// Randomized Participant ID
+var identifier = Math.random().toString(36).substr(2, 10); //randomly generate alpha-numeric string for subject number
+jsPsych.data.addProperties({participant: identifier});
+
+
+/***********************/
+/** DEFINE ALL AUDIOS **/
+/***********************/
+audio = [
+	audioname_volume_adjustment, // in PROC_volume_adjustment.js
+	audioname_headphone_check,   // in PROC_headphone_check.js
+	audioname_pl,                // in PROC_perclearn.js
+	audioname_pltrain,           // in PROC_perclearn_train.js
+	audioname_dt,                // in PROC_digit_triple_noise.js
+	audioname_ds                 // in PROC_auditory_digit_span.js
+];
+
+
+/************/
+/** INTROS **/
+/************/
+var overall_intro = {
+	type: 'html-button-response',
+	// TDDT
+	// I edited this text and layout a little.
+	stimulus: '<p style = "text-align: left;">In this study, you will hear auditory stimuli. Please take a minute to grab headphones (if you have not already) and use them for the study.</p' +
+			  '<p> This study contains several parts and lasts approximately 35 minutes overall.<br>Instructions for each task will be given right before the task. Tasks include:</p>' + 
+			  '<ul><li style = "text-align: left;">an audio setup check (approximately 2 minutes),</li>' +
+			  '<li style = "text-align: left;">a story-listening task (approximately 12 minutes),</li>'+
+			  '<li style = "text-align: left;">a few comprehension/experience questions (approximately 5 minutes),</li>' +
+			  '<li style = "text-align: left;">a number-perception task (approximately 4 minutes),</li>' +
+			  '<li style = "text-align: left;">a digit-memory task (approximately 6 minutes),</li>' +
+			  '<li style = "text-align: left;">and a few demographic, hearing, and general health questions (approximately 2 minutes).</li></ul>',
+	choices: ['BEGIN']
+};
+
+var questionnaire_intro = {
+	type: 'html-button-response',
+	// TDDT
+	// Edited text.
+	stimulus: '<p>Thank you for your responses.</p><p>We would like to ask you some questions about demographics, hearing, and general health.</p>',
+	choices: ['BEGIN']
+};
+
+
+var empty_interval = {
+	type: 'html-keyboard-response',
+	stimulus: '<div style="font-size:60px;" tabindex="0"></div>',
+	trial_duration: 1500,
+	choices: jsPsych.NO_KEYS
+};
+
+
+/******************/
+/** FINAL SCREEN **/
+/******************/
+var finalscreen = {
+	type: "html-button-response",
+	stimulus: "<p>This concludes the study.</p><p>Here is your unique code.</p>"+
+			  "<p>" + identifier + "</p>"+
+			  "<p>Please enter this exactly as it appears to receive credit for participating.</p>" +
+			  "<p><b>Thank you for your responses!</b></p>",
+	choices: ['Exit']
+};
+      
+
+/*********************************/
+/** PUSH COMPONENTS TO TIMELINE **/
+/*********************************/
+// pavlovia initalize
+// timeline.push(pavlovia_init); // comment out if testing locally
+
+// consent
+//timeline.push(consent_trial);
+
+// basic auditory check
+// timeline.push(empty_interval, overall_intro, PROC_volume_adjustment, empty_interval, PROC_headphone_check);
+// TDDT
+// Made some changes to PROC_headphone_check (all labelled).
+
+// fullscreen
+//timeline.push({type: 'fullscreen', fullscreen_mode: true});
+
+// training for experiment
+// timeline.push(empty_interval, PROC_perclearn_train);
+
+// perclearn experiment
+timeline.push(empty_interval, PROC_perclearn);
+
+// digit in noise test
+// timeline.push(empty_interval, PROC_digit_triple_noise);
+
+// digit span
+// timeline.push(empty_interval, PROC_auditory_digit_span);
+
+// questionnaires
+timeline.push(empty_interval, questionnaire_intro, Q_audiosetup, Q_demographics, Q_health, Q_music);
+
+// exit fullscreen
+timeline.push({type: 'fullscreen', fullscreen_mode: false});
+
+// pavlovia finish
+//timeline.push(pavlovia_finish); // comment out if testing locally
+
+// final screen 
+timeline.push(empty_interval, finalscreen);
+
+
+/////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////
+
+jsPsych.init({
+    timeline: timeline,
+	preload_audio: audio,
+
+	// TDDT
+	// Based on tutorial, changing web audio settings to to see if it will then run (or at least remove errors).
+	use_webaudio: false
+
+	/*
+	on_finish: function(){
+		var filename = identifier += '.csv';
+		jsPsych.data.get().localSave('csv',filename);
+	} // comment out for Pavlovia
+	*/
+
+});
+
+</script>
+</body>
+</html>
